@@ -53,7 +53,7 @@ echo Compiling Scratch-Blocks..
 java -jar $COMPILER \
   --js='core/**.js' \
   --js='!core/block_render_svg_horizontal.js' \
-  --js='../closure-library/closure/goog/**.js' \
+  --js='node_modules/google-closure-library/closure/goog/**.js' \
   --js='../closure-library/third_party/closure/goog/**.js' \
   --generate_exports \
   --warning_level='DEFAULT' \

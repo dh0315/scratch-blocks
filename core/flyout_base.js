@@ -304,6 +304,39 @@ Blockly.Flyout.prototype.createDom = function(tagName) {
  * @param {!Blockly.Workspace} targetWorkspace The workspace in which to create
  *     new blocks.
  */
+
+Blockly.Flyout.prototype.addMouseOverEvent = function() {
+  var flyoutElement = this.svgGroup_;
+  var clipRectElement = document.getElementById("blocklyBlockMenuClipRect");
+  var path = document.getElementsByClassName("blocklyFlyoutBackground");
+  var scrollbar = document.getElementsByClassName("blocklyScrollbarVertical blocklyFlyoutScrollbar");
+
+  if (flyoutElement && clipRectElement && path.length > 0) {
+    console.log("마우스 오버 이벤트 추가");
+
+    // 마우스 오버 이벤트를 flyout에 바인딩
+    flyoutElement.addEventListener('mouseover', function() {
+      console.log("마우스 오버");
+      clipRectElement.setAttribute("width", "450px");  // clipRect의 width 수정
+      flyoutElement.style.width = "450px";  // flyout의 width 수정
+      path[0].setAttribute("d", "M 0,0 h 450 a 0 0 0 0 1 0 0 v 2000 a 0 0 0 0 1 0 0 h -450 z");
+      scrollbar[0].style.transform = "translate(496.5px, 2.5px)";
+    });
+
+    // 마우스 아웃 이벤트를 flyout에 바인딩
+    flyoutElement.addEventListener('mouseout', function() {
+      console.log("마우스 아웃");
+      clipRectElement.setAttribute("width", "248px");  // clipRect의 width 복원
+      flyoutElement.style.width = "250px";  // flyout의 width 복원
+      path[0].setAttribute("d", "M 0,0 h 250 a 0 0 0 0 1 0 0 v 2000 a 0 0 0 0 1 0 0 h -250 z");
+      scrollbar[0].style.transform = "translate(296.5px, 2.5px)";
+    });
+  } else {
+    console.log("마우스 오버 이벤트를 추가할 수 없습니다.");
+  }
+};
+
+
 Blockly.Flyout.prototype.init = function(targetWorkspace) {
   this.targetWorkspace_ = targetWorkspace;
   this.workspace_.targetWorkspace = targetWorkspace;
@@ -328,6 +361,8 @@ Blockly.Flyout.prototype.init = function(targetWorkspace) {
   this.workspace_.variableMap_  = this.targetWorkspace_.getVariableMap();
 
   this.workspace_.createPotentialVariableMap();
+
+  this.addMouseOverEvent();  // 마우스 오버 이벤트 추가
 };
 
 /**

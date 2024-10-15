@@ -112,10 +112,9 @@ Blockly.FieldColourSlider.prototype.setValue = function(colour) {
   }
   this.colour_ = colour;
   if (this.sourceBlock_) {
-    // Set the colours to this value.
+    // Set the primary, secondary and tertiary colour to this value.
     // The renderer expects to be able to use the secondary colour as the fill for a shadow.
-    this.sourceBlock_.setColour(colour, colour, this.sourceBlock_.getColourTertiary(),
-        this.sourceBlock_.getColourQuaternary());
+    this.sourceBlock_.setColour(colour, colour, this.sourceBlock_.getColourTertiary());
   }
   this.updateSliderHandles_();
   this.updateDom_();
@@ -246,18 +245,19 @@ Blockly.FieldColourSlider.prototype.sliderCallbackFactory_ = function(channel) {
   return function(event) {
     if (!thisField.sliderCallbacksEnabled_) return;
     var channelValue = event.target.getValue();
+    var hsv = goog.color.hexToHsv(thisField.getValue());
     switch (channel) {
       case 'hue':
-        thisField.hue_ = channelValue;
+        hsv[0] = thisField.hue_ = channelValue;
         break;
       case 'saturation':
-        thisField.saturation_ = channelValue;
+        hsv[1] = thisField.saturation_ = channelValue;
         break;
       case 'brightness':
-        thisField.brightness_ = channelValue;
+        hsv[2] = thisField.brightness_ = channelValue;
         break;
     }
-    var colour = goog.color.hsvToHex(thisField.hue_, thisField.saturation_, thisField.brightness_);
+    var colour = goog.color.hsvToHex(hsv[0], hsv[1], hsv[2]);
     if (thisField.sourceBlock_) {
       // Call any validation function, and allow it to override.
       colour = thisField.callValidator(colour);

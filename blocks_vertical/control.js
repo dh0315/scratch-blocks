@@ -209,8 +209,7 @@ Blockly.Blocks['control_stop'] = {
     this.setCategory(Blockly.Categories.control);
     this.setColour(Blockly.Colours.control.primary,
         Blockly.Colours.control.secondary,
-        Blockly.Colours.control.tertiary,
-        Blockly.Colours.control.quaternary
+        Blockly.Colours.control.tertiary
     );
     this.setPreviousStatement(true);
   },

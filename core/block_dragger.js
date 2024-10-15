@@ -245,13 +245,9 @@ Blockly.BlockDragger.prototype.endBlockDrag = function(e, currentDragDeltaXY) {
     // These are expensive and don't need to be done if we're deleting.
     this.draggingBlock_.moveConnections_(delta.x, delta.y);
     this.draggingBlock_.setDragging(false);
+    this.draggedConnectionManager_.applyConnections();
+    this.draggingBlock_.render();
     this.fireMoveEvent_();
-    if (this.draggedConnectionManager_.wouldConnectBlock()) {
-      // Applying connections also rerenders the relevant blocks.
-      this.draggedConnectionManager_.applyConnections();
-    } else {
-      this.draggingBlock_.render();
-    }
     this.draggingBlock_.scheduleSnapAndBump();
   }
   this.workspace_.setResizesEnabled(true);
@@ -285,7 +281,8 @@ Blockly.BlockDragger.prototype.endBlockDrag = function(e, currentDragDeltaXY) {
           var procCode = block.getProcCode();
           // Check for call blocks with no associated define block.
           if (!Blockly.Procedures.getDefineBlock(procCode, ws)) {
-            alert(Blockly.Msg.PROCEDURE_USED);
+            // TODO:(#1151)
+            alert('To delete a block definition, first remove all uses of the block');
             ws.undo();
             return; // There can only be one define deletion at a time.
           }

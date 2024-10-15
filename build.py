@@ -35,16 +35,11 @@
 #   msg/js/<LANG>.js for every language <LANG> defined in msg/js/<LANG>.json.
 
 import sys
+if sys.version_info[0] != 2:
+  raise Exception("Blockly build only compatible with Python 2.x.\n"
+                  "You are using: " + sys.version)
 
-import errno, glob, json, os, re, subprocess, threading, codecs, functools
-
-if sys.version_info[0] == 2:
-  import httplib
-  from urllib import urlencode
-else:
-  import http.client as httplib
-  from urllib.parse import urlencode
-  from importlib import reload
+import errno, glob, httplib, json, os, re, subprocess, threading, urllib
 
 REMOTE_COMPILER = "remote"
 
@@ -56,7 +51,7 @@ CLOSURE_COMPILER = REMOTE_COMPILER
 CLOSURE_DIR_NPM = "node_modules"
 CLOSURE_ROOT_NPM = os.path.join("node_modules")
 CLOSURE_LIBRARY_NPM = "google-closure-library"
-CLOSURE_COMPILER_NPM = ("google-closure-compiler.cmd" if os.name == "nt" else "google-closure-compiler")
+CLOSURE_COMPILER_NPM = "./node_modules/google-closure-compiler/compiler.jar"
 
 def import_path(fullpath):
   """Import a file with full path specification.
@@ -199,7 +194,7 @@ if (isNodeJS) {
 
     key_whitelist = self.closure_env.keys()
 
-    keys_pipe_separated = functools.reduce(lambda accum, key: accum + "|" + key, key_whitelist)
+    keys_pipe_separated = reduce(lambda accum, key: accum + "|" + key, key_whitelist)
     begin_brace = re.compile(r"\{(?!%s)" % (keys_pipe_separated,))
 
     end_brace = re.compile(r"\}")
@@ -292,7 +287,7 @@ class Gen_compressed(threading.Thread):
     # Add Blockly.Colours for use of centralized colour bank
     filenames.append(os.path.join("core", "colours.js"))
     filenames.append(os.path.join("core", "constants.js"))
-
+    
     for filename in filenames:
       # Append filenames as false arguments the step before compiling will
       # either transform them into arguments for local or remote compilation
@@ -327,10 +322,10 @@ class Gen_compressed(threading.Thread):
         if pair[0][2:] not in filter_keys:
           dash_args.extend(pair)
 
-      # Build the final args array by prepending CLOSURE_COMPILER_NPM to
+      # Build the final args array by prepending google-closure-compiler to
       # dash_args and dropping any falsy members
       args = []
-      for group in [[CLOSURE_COMPILER_NPM], dash_args]:
+      for group in [["java", "-jar","./node_modules/google-closure-compiler/compiler.jar"], dash_args]:
         args.extend(filter(lambda item: item, group))
 
       proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -341,7 +336,7 @@ class Gen_compressed(threading.Thread):
       return dict(
         compiledCode=stdout,
         statistics=dict(
-          originalSize=functools.reduce(lambda v, size: v + size, filesizes, 0),
+          originalSize=reduce(lambda v, size: v + size, filesizes, 0),
           compressedSize=len(stdout),
         )
       )
@@ -378,10 +373,9 @@ class Gen_compressed(threading.Thread):
 
       headers = {"Content-type": "application/x-www-form-urlencoded"}
       conn = httplib.HTTPSConnection("closure-compiler.appspot.com")
-      conn.request("POST", "/compile", urlencode(remoteParams), headers)
+      conn.request("POST", "/compile", urllib.urlencode(remoteParams), headers)
       response = conn.getresponse()
-      # Decode is necessary for Python 3.4 compatibility
-      json_str = response.read().decode("utf-8")
+      json_str = response.read()
       conn.close()
 
       # Parse the JSON response.
@@ -394,12 +388,12 @@ class Gen_compressed(threading.Thread):
       n = int(name[6:]) - 1
       return filenames[n]
 
-    if "serverErrors" in json_data:
+    if json_data.has_key("serverErrors"):
       errors = json_data["serverErrors"]
       for error in errors:
         print("SERVER ERROR: %s" % target_filename)
         print(error["error"])
-    elif "errors" in json_data:
+    elif json_data.has_key("errors"):
       errors = json_data["errors"]
       for error in errors:
         print("FATAL ERROR")
@@ -411,7 +405,7 @@ class Gen_compressed(threading.Thread):
           print((" " * error["charno"]) + "^")
         sys.exit(1)
     else:
-      if "warnings" in json_data:
+      if json_data.has_key("warnings"):
         warnings = json_data["warnings"]
         for warning in warnings:
           print("WARNING")
@@ -428,11 +422,11 @@ class Gen_compressed(threading.Thread):
     return False
 
   def write_output(self, target_filename, remove, json_data):
-      if "compiledCode" not in json_data:
+      if not json_data.has_key("compiledCode"):
         print("FATAL ERROR: Compiler did not return compiledCode.")
         sys.exit(1)
 
-      code = HEADER + "\n" + json_data["compiledCode"].decode("utf-8")
+      code = HEADER + "\n" + json_data["compiledCode"]
       code = code.replace(remove, "")
 
       # Trim down Google's (and only Google's) Apache licences.
@@ -506,7 +500,7 @@ class Gen_langfiles(threading.Thread):
           # If a destination file was missing, rebuild.
           return True
       else:
-        print("Error checking file creation times: " + str(e))
+        print("Error checking file creation times: " + e)
 
   def run(self):
     # The files msg/json/{en,qqq,synonyms}.json depend on msg/messages.js.
@@ -565,54 +559,32 @@ def exclude_horizontal(item):
   return not item.endswith("block_render_svg_horizontal.js")
 
 if __name__ == "__main__":
-  try:
-    closure_dir = CLOSURE_DIR_NPM
-    closure_root = CLOSURE_ROOT_NPM
-    closure_library = CLOSURE_LIBRARY_NPM
-    closure_compiler = CLOSURE_COMPILER_NPM
+  closure_dir = CLOSURE_DIR_NPM
+  closure_root = CLOSURE_ROOT_NPM
+  closure_library = CLOSURE_LIBRARY_NPM
+  closure_compiler = CLOSURE_COMPILER_NPM
 
-    # Load calcdeps from the local library
-    calcdeps = import_path(os.path.join(
-        closure_root, closure_library, "closure", "bin", "calcdeps.py"))
+  # Load calcdeps from the local library
+  calcdeps = import_path(os.path.join(
+      closure_root, closure_library, "closure", "bin", "calcdeps.py"))
 
-    # Sanity check the local compiler
-    test_args = [closure_compiler, os.path.join("build", "test_input.js")]
-    test_proc = subprocess.Popen(test_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    (stdout, _) = test_proc.communicate()
-    assert stdout.decode("utf-8") == read(os.path.join("build", "test_expect.js"))
+  # Sanity check the local compiler
+  test_args = ["java", "-jar", closure_compiler, os.path.join("build", "test_input.js")]
 
-    print("Using local compiler: %s ...\n" % CLOSURE_COMPILER_NPM)
-  except (ImportError, AssertionError):
-    print("Using remote compiler: closure-compiler.appspot.com ...\n")
+  print("test_args: ",test_args)
 
-    try:
-      closure_dir = CLOSURE_DIR
-      closure_root = CLOSURE_ROOT
-      closure_library = CLOSURE_LIBRARY
-      closure_compiler = CLOSURE_COMPILER
 
-      calcdeps = import_path(os.path.join(
-          closure_root, closure_library, "closure", "bin", "calcdeps.py"))
-    except ImportError:
-      if os.path.isdir(os.path.join(os.path.pardir, "closure-library-read-only")):
-        # Dir got renamed when Closure moved from Google Code to GitHub in 2014.
-        print("Error: Closure directory needs to be renamed from"
-              "'closure-library-read-only' to 'closure-library'.\n"
-              "Please rename this directory.")
-      elif os.path.isdir(os.path.join(os.path.pardir, "google-closure-library")):
-        print("Error: Closure directory needs to be renamed from"
-             "'google-closure-library' to 'closure-library'.\n"
-             "Please rename this directory.")
-      else:
-        print("""Error: Closure not found.  Read this:
-  developers.google.com/blockly/guides/modify/web/closure""")
-      sys.exit(1)
+  test_proc = subprocess.Popen(test_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+  (stdout, _) = test_proc.communicate()
+  assert stdout == read(os.path.join("build", "test_expect.js"))
 
-  search_paths = list(calcdeps.ExpandDirectories(
-      ["core", os.path.join(closure_root, closure_library)]))
+  print("Using local compiler: google-closure-compiler ...\n")
 
-  search_paths_horizontal = list(filter(exclude_vertical, search_paths))
-  search_paths_vertical = list(filter(exclude_horizontal, search_paths))
+  search_paths = calcdeps.ExpandDirectories(
+      ["core", os.path.join(closure_root, closure_library)])
+
+  search_paths_horizontal = filter(exclude_vertical, search_paths)
+  search_paths_vertical = filter(exclude_horizontal, search_paths)
 
   closure_env = {
     "closure_dir": closure_dir,

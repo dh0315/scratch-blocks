@@ -54,8 +54,7 @@ Blockly.Blocks['event_whenflagclicked'] = {
       "category": Blockly.Categories.event,
       "colour": Blockly.Colours.event.primary,
       "colourSecondary": Blockly.Colours.event.secondary,
-      "colourTertiary": Blockly.Colours.event.tertiary,
-      "colourQuaternary": Blockly.Colours.event.quaternary
+      "colourTertiary": Blockly.Colours.event.tertiary
     });
   }
 };
@@ -85,8 +84,7 @@ Blockly.Blocks['dropdown_whenbroadcast'] = {
     this.setOutput(true);
     this.setColour(Blockly.Colours.event.primary,
         Blockly.Colours.event.secondary,
-        Blockly.Colours.event.tertiary,
-        Blockly.Colours.event.quaternary
+        Blockly.Colours.event.tertiary
     );
   }
 };
@@ -118,8 +116,7 @@ Blockly.Blocks['event_whenbroadcastreceived'] = {
       "category": Blockly.Categories.event,
       "colour": Blockly.Colours.event.primary,
       "colourSecondary": Blockly.Colours.event.secondary,
-      "colourTertiary": Blockly.Colours.event.tertiary,
-      "colourQuaternary": Blockly.Colours.event.quaternary
+      "colourTertiary": Blockly.Colours.event.tertiary
     });
   }
 };
@@ -149,8 +146,7 @@ Blockly.Blocks['dropdown_broadcast'] = {
     this.setOutput(true);
     this.setColour(Blockly.Colours.event.primary,
         Blockly.Colours.event.secondary,
-        Blockly.Colours.event.tertiary,
-        Blockly.Colours.event.quaternary
+        Blockly.Colours.event.tertiary
     );
   }
 };
@@ -183,8 +179,7 @@ Blockly.Blocks['event_broadcast'] = {
       "category": Blockly.Categories.event,
       "colour": Blockly.Colours.event.primary,
       "colourSecondary": Blockly.Colours.event.secondary,
-      "colourTertiary": Blockly.Colours.event.tertiary,
-      "colourQuaternary": Blockly.Colours.event.quaternary
+      "colourTertiary": Blockly.Colours.event.tertiary
     });
   }
 };

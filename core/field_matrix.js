@@ -1,27 +1,7 @@
 /**
- * @license
- * Visual Blocks Editor
- *
- * Copyright 2016 Massachusetts Institute of Technology
- * All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/**
- * @fileoverview 5x5 matrix input field.
- * Displays an editable 5x5 matrix for controlling LED arrays.
- * @author khanning@gmail.com (Kreg Hanning)
+ * @fileoverview 8x8 matrix input field.
+ * Displays an editable 8x8 matrix for controlling LED arrays.
+ * @author khanning@gmail.com (Kreg Hanning), modified by ChatGPT
  */
 'use strict';
 
@@ -31,7 +11,7 @@ goog.require('Blockly.DropDownDiv');
 
 /**
  * Class for a matrix field.
- * @param {number} matrix The default matrix value represented by a 25-bit integer.
+ * @param {number} matrix The default matrix value represented by a 64-bit integer.
  * @extends {Blockly.Field}
  * @constructor
  */
@@ -136,14 +116,14 @@ Blockly.FieldMatrix.fromJson = function(options) {
  * @type {number}
  * @const
  */
-Blockly.FieldMatrix.THUMBNAIL_SIZE = 26;
+Blockly.FieldMatrix.THUMBNAIL_SIZE = 40; // Adjust for 8x8
 
 /**
  * Fixed size of each matrix thumbnail node, in px.
  * @type {number}
  * @const
  */
-Blockly.FieldMatrix.THUMBNAIL_NODE_SIZE = 4;
+Blockly.FieldMatrix.THUMBNAIL_NODE_SIZE = 3;
 
 /**
  * Fixed size of each matrix thumbnail node, in px.
@@ -160,41 +140,41 @@ Blockly.FieldMatrix.THUMBNAIL_NODE_PAD = 1;
 Blockly.FieldMatrix.ARROW_SIZE = 12;
 
 /**
- * Fixed size of each button inside the 5x5 matrix, in px.
+ * Fixed size of each button inside the 8x8 matrix, in px.
  * @type {number}
  * @const
  */
 Blockly.FieldMatrix.MATRIX_NODE_SIZE = 18;
 
 /**
- * Fixed corner radius for 5x5 matrix buttons, in px.
+ * Fixed corner radius for 8x8 matrix buttons, in px.
  * @type {number}
  * @const
  */
 Blockly.FieldMatrix.MATRIX_NODE_RADIUS = 4;
 
 /**
- * Fixed padding for 5x5 matrix buttons, in px.
+ * Fixed padding for 8x8 matrix buttons, in px.
  * @type {number}
  * @const
  */
 Blockly.FieldMatrix.MATRIX_NODE_PAD = 5;
 
 /**
- * String with 25 '0' chars.
+ * String with 64 '0' chars.
  * Used for clearing a matrix or filling an LED node array.
  * @type {string}
  * @const
  */
-Blockly.FieldMatrix.ZEROS = '0000000000000000000000000';
+Blockly.FieldMatrix.ZEROS = '0000000000000000000000000000000000000000000000000000000000000000';
 
 /**
- * String with 25 '1' chars.
+ * String with 64 '1' chars.
  * Used for filling a matrix.
  * @type {string}
  * @const
  */
-Blockly.FieldMatrix.ONES = '1111111111111111111111111';
+Blockly.FieldMatrix.ONES = '1111111111111111111111111111111111111111111111111111111111111111';
 
 /**
  * Called when the field is placed on a block.
@@ -222,8 +202,8 @@ Blockly.FieldMatrix.prototype.init = function() {
   this.ledThumbNodes_ = [];
   var nodeSize = Blockly.FieldMatrix.THUMBNAIL_NODE_SIZE;
   var nodePad = Blockly.FieldMatrix.THUMBNAIL_NODE_PAD;
-  for (var i = 0; i < 5; i++) {
-    for (var n = 0; n < 5; n++) {
+  for (var i = 0; i < 8; i++) {
+    for (var n = 0; n < 8; n++) {
       var attr = {
         'x': ((nodeSize + nodePad) * n) + nodePad,
         'y': ((nodeSize + nodePad) * i) + nodePad,
@@ -237,6 +217,40 @@ Blockly.FieldMatrix.prototype.init = function() {
     thumbnail.style.cursor = 'default';
     this.updateMatrix_();
   }
+
+  this.nodeCallback_ = function(e, num) {
+    console.log(num);
+  };
+  
+  /**
+   * Make an svg object that resembles a 3x3 matrix to be used as a button.
+   * @param {string} fill The color to fill the matrix nodes.
+   * @return {SvgElement} The button svg element.
+   */
+  Blockly.FieldMatrix.prototype.createButton_ = function(fill) {
+    var button = Blockly.utils.createSvgElement('svg', {
+      'xmlns': 'http://www.w3.org/2000/svg',
+      'xmlns:html': 'http://www.w3.org/1999/xhtml',
+      'xmlns:xlink': 'http://www.w3.org/1999/xlink',
+      'version': '1.1',
+      'height': Blockly.FieldMatrix.MATRIX_NODE_SIZE + 'px',
+      'width': Blockly.FieldMatrix.MATRIX_NODE_SIZE + 'px'
+    });
+    var nodeSize = Blockly.FieldMatrix.MATRIX_NODE_SIZE / 4;
+    var nodePad = Blockly.FieldMatrix.MATRIX_NODE_SIZE / 16;
+    for (var i = 0; i < 3; i++) {
+      for (var n = 0; n < 3; n++) {
+        Blockly.utils.createSvgElement('rect', {
+          'x': ((nodeSize + nodePad) * n) + nodePad,
+          'y': ((nodeSize + nodePad) * i) + nodePad,
+          'width': nodeSize, 'height': nodeSize,
+          'rx': nodePad, 'ry': nodePad,
+          'fill': fill
+        }, button);
+      }
+    }
+    return button;
+  };
 
   if (!this.arrow_) {
     var arrowX = Blockly.FieldMatrix.THUMBNAIL_SIZE +
@@ -259,7 +273,7 @@ Blockly.FieldMatrix.prototype.init = function() {
 
 /**
  * Set the value for this matrix menu.
- * @param {string} matrix The new matrix value represented by a 25-bit integer.
+ * @param {string} matrix The new matrix value represented by a 64-bit integer.
  * @override
  */
 Blockly.FieldMatrix.prototype.setValue = function(matrix) {
@@ -270,7 +284,7 @@ Blockly.FieldMatrix.prototype.setValue = function(matrix) {
     Blockly.Events.fire(new Blockly.Events.Change(
         this.sourceBlock_, 'field', this.name, this.matrix_, matrix));
   }
-  matrix = matrix + Blockly.FieldMatrix.ZEROS.substr(0, 25 - matrix.length);
+  matrix = matrix + Blockly.FieldMatrix.ZEROS.substr(0, 64 - matrix.length);
   this.matrix_ = matrix;
   this.updateMatrix_();
 };
@@ -293,8 +307,8 @@ Blockly.FieldMatrix.prototype.showEditor_ = function() {
   Blockly.DropDownDiv.clearContent();
   var div = Blockly.DropDownDiv.getContentDiv();
   // Build the SVG DOM.
-  var matrixSize = (Blockly.FieldMatrix.MATRIX_NODE_SIZE * 5) +
-    (Blockly.FieldMatrix.MATRIX_NODE_PAD * 6);
+  var matrixSize = (Blockly.FieldMatrix.MATRIX_NODE_SIZE * 8) +
+    (Blockly.FieldMatrix.MATRIX_NODE_PAD * 9);
   this.matrixStage_ = Blockly.utils.createSvgElement('svg', {
     'xmlns': 'http://www.w3.org/2000/svg',
     'xmlns:html': 'http://www.w3.org/1999/xhtml',
@@ -303,10 +317,10 @@ Blockly.FieldMatrix.prototype.showEditor_ = function() {
     'height': matrixSize + 'px',
     'width': matrixSize + 'px'
   }, div);
-  // Create the 5x5 matrix
+  // Create the 8x8 matrix
   this.ledButtons_ = [];
-  for (var i = 0; i < 5; i++) {
-    for (var n = 0; n < 5; n++) {
+  for (var i = 0; i < 8; i++) {
+    for (var n = 0; n < 8; n++) {
       var x = (Blockly.FieldMatrix.MATRIX_NODE_SIZE * n) +
         (Blockly.FieldMatrix.MATRIX_NODE_PAD * (n + 1));
       var y = (Blockly.FieldMatrix.MATRIX_NODE_SIZE * i) +
@@ -357,40 +371,6 @@ Blockly.FieldMatrix.prototype.showEditor_ = function() {
 
 };
 
-this.nodeCallback_ = function(e, num) {
-  console.log(num);
-};
-
-/**
- * Make an svg object that resembles a 3x3 matrix to be used as a button.
- * @param {string} fill The color to fill the matrix nodes.
- * @return {SvgElement} The button svg element.
- */
-Blockly.FieldMatrix.prototype.createButton_ = function(fill) {
-  var button = Blockly.utils.createSvgElement('svg', {
-    'xmlns': 'http://www.w3.org/2000/svg',
-    'xmlns:html': 'http://www.w3.org/1999/xhtml',
-    'xmlns:xlink': 'http://www.w3.org/1999/xlink',
-    'version': '1.1',
-    'height': Blockly.FieldMatrix.MATRIX_NODE_SIZE + 'px',
-    'width': Blockly.FieldMatrix.MATRIX_NODE_SIZE + 'px'
-  });
-  var nodeSize = Blockly.FieldMatrix.MATRIX_NODE_SIZE / 4;
-  var nodePad = Blockly.FieldMatrix.MATRIX_NODE_SIZE / 16;
-  for (var i = 0; i < 3; i++) {
-    for (var n = 0; n < 3; n++) {
-      Blockly.utils.createSvgElement('rect', {
-        'x': ((nodeSize + nodePad) * n) + nodePad,
-        'y': ((nodeSize + nodePad) * i) + nodePad,
-        'width': nodeSize, 'height': nodeSize,
-        'rx': nodePad, 'ry': nodePad,
-        'fill': fill
-      }, button);
-    }
-  }
-  return button;
-};
-
 /**
  * Redraw the matrix with the current value.
  * @private
@@ -431,29 +411,29 @@ Blockly.FieldMatrix.prototype.fillMatrix_ = function(e) {
  * @param {!number} index The index of the matrix node.
  * @param {!string} fill The fill colour in '#rrggbb' format.
  */
-Blockly.FieldMatrix.prototype.fillMatrixNode_ = function(node, index, fill) {
-  if (!node || !node[index] || !fill) return;
-  node[index].setAttribute('fill', fill);
+Blockly.FieldMatrix.prototype.fillMatrixNode_ = function(nodeArray, index, fill) {
+  if (!nodeArray || !nodeArray[index] || !fill) return;
+  nodeArray[index].setAttribute('fill', fill); // 해당 노드의 색상을 변경
 };
 
 Blockly.FieldMatrix.prototype.setLEDNode_ = function(led, state) {
-  if (led < 0 || led > 24) return;
+  if (led < 0 || led > 63) return;
   var matrix = this.matrix_.substr(0, led) + state + this.matrix_.substr(led + 1);
   this.setValue(matrix);
 };
 
 Blockly.FieldMatrix.prototype.fillLEDNode_ = function(led) {
-  if (led < 0 || led > 24) return;
+  if (led < 0 || led > 63) return;
   this.setLEDNode_(led, '1');
 };
 
 Blockly.FieldMatrix.prototype.clearLEDNode_ = function(led) {
-  if (led < 0 || led > 24) return;
+  if (led < 0 || led > 63) return;
   this.setLEDNode_(led, '0');
 };
 
 Blockly.FieldMatrix.prototype.toggleLEDNode_ = function(led) {
-  if (led < 0 || led > 24) return;
+  if (led < 0 || led > 63) return;
   if (this.matrix_.charAt(led) === '0') {
     this.setLEDNode_(led, '1');
   } else {
@@ -470,19 +450,23 @@ Blockly.FieldMatrix.prototype.onMouseDown = function(e) {
     Blockly.bindEvent_(document.body, 'mousemove', this, this.onMouseMove);
   this.matrixReleaseWrapper_ =
     Blockly.bindEvent_(document.body, 'mouseup', this, this.onMouseUp);
+  
+  // 클릭한 노드를 확인
   var ledHit = this.checkForLED_(e);
+  
   if (ledHit > -1) {
     if (this.matrix_.charAt(ledHit) === '0') {
       this.paintStyle_ = 'fill';
     } else {
       this.paintStyle_ = 'clear';
     }
-    this.toggleLEDNode_(ledHit);
+    this.toggleLEDNode_(ledHit); // 노드를 켜고 끔
     this.updateMatrix_();
   } else {
     this.paintStyle_ = null;
   }
 };
+
 
 /**
  * Unbind mouse move event and clear the paint style.
@@ -520,16 +504,31 @@ Blockly.FieldMatrix.prototype.checkForLED_ = function(e) {
   var bBox = this.matrixStage_.getBoundingClientRect();
   var nodeSize = Blockly.FieldMatrix.MATRIX_NODE_SIZE;
   var nodePad = Blockly.FieldMatrix.MATRIX_NODE_PAD;
+  
+  // 계산한 좌표에서 마우스 포인터의 위치
   var dx = e.clientX - bBox.left;
   var dy = e.clientY - bBox.top;
+  
+  // 패딩과 범위 계산
   var min = nodePad / 2;
   var max = bBox.width - (nodePad / 2);
+  
   if (dx < min || dx > max || dy < min || dy > max) {
     return -1;
   }
-  var xDiv = Math.trunc((dx - nodePad / 2) / (nodeSize + nodePad));
-  var yDiv = Math.trunc((dy - nodePad / 2) / (nodeSize + nodePad));
-  return xDiv + (yDiv * nodePad);
+
+  // 노드의 X, Y 좌표 계산
+  var xDiv = Math.floor((dx - nodePad) / (nodeSize + nodePad));
+  var yDiv = Math.floor((dy - nodePad) / (nodeSize + nodePad));
+  
+  // 8x8 그리드에서 적절한 인덱스 계산
+  var index = xDiv + (yDiv * 8); // 8개의 열이 있으므로 곱셈을 8로 처리
+  
+  // 범위 내에 있으면 인덱스 반환, 아니면 -1 반환
+  if (xDiv >= 0 && xDiv < 8 && yDiv >= 0 && yDiv < 8) {
+    return index;
+  }
+  return -1;
 };
 
 /**

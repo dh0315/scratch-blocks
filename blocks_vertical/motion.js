@@ -141,7 +141,6 @@ Blockly.Blocks['motion_pointtowards_menu'] = {
       "colour": Blockly.Colours.motion.secondary,
       "colourSecondary": Blockly.Colours.motion.secondary,
       "colourTertiary": Blockly.Colours.motion.tertiary,
-      "colourQuaternary": Blockly.Colours.motion.quaternary,
       "extensions": ["output_string"]
     });
   }
@@ -188,7 +187,6 @@ Blockly.Blocks['motion_goto_menu'] = {
       "colour": Blockly.Colours.motion.secondary,
       "colourSecondary": Blockly.Colours.motion.secondary,
       "colourTertiary": Blockly.Colours.motion.tertiary,
-      "colourQuaternary": Blockly.Colours.motion.quaternary,
       "extensions": ["output_string"]
     });
   }
@@ -287,7 +285,6 @@ Blockly.Blocks['motion_glideto_menu'] = {
       "colour": Blockly.Colours.motion.secondary,
       "colourSecondary": Blockly.Colours.motion.secondary,
       "colourTertiary": Blockly.Colours.motion.tertiary,
-      "colourQuaternary": Blockly.Colours.motion.quaternary,
       "extensions": ["output_string"]
     });
   }

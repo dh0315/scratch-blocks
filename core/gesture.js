@@ -553,6 +553,9 @@ Blockly.Gesture.prototype.handleMove = function(e) {
   } else if (this.isDraggingBubble_) {
     this.bubbleDragger_.dragBubble(this.mostRecentEvent_,
         this.currentDragDeltaXY_);
+  } else {
+    // 마우스가 드래그 중이 아닌 경우에는 이벤트 전파를 허용
+    stopPropagation = false;
   }
 
   if (stopPropagation) {
