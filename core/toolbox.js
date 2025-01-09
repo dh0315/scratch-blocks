@@ -132,8 +132,17 @@ Blockly.Toolbox.prototype.init = function() {
 
   this.createFlyout_();
   this.categoryMenu_ = new Blockly.Toolbox.CategoryMenu(this, this.HtmlDiv);
+
+  // console.log("workspace.options.languageTree: ",workspace.options.languageTree);
+
   this.populate_(workspace.options.languageTree);
   this.position();
+};
+
+Blockly.Toolbox.prototype.clear = function() {
+  while (this.HtmlDiv.firstChild) {
+      this.HtmlDiv.removeChild(this.HtmlDiv.firstChild);
+  }
 };
 
 /**
@@ -183,10 +192,28 @@ Blockly.Toolbox.prototype.createFlyout_ = function() {
  * @private
  */
 Blockly.Toolbox.prototype.populate_ = function(newTree) {
+  // console.log("newTree", newTree);
+
   this.categoryMenu_.populate(newTree);
+
+  // 플라이아웃 초기화
   this.showAll_();
-  this.setSelectedItem(this.categoryMenu_.categories_[0], false);
+
+  // 첫 번째 카테고리 선택 (없으면 null 설정)
+  if (this.categoryMenu_.categories_.length > 0) {
+    this.setSelectedItem(this.categoryMenu_.categories_[0], false);
+  } else {
+    this.setSelectedItem(null);
+  }
 };
+
+Blockly.Toolbox.prototype.clear = function() {
+  while (this.HtmlDiv.firstChild) {
+      this.HtmlDiv.removeChild(this.HtmlDiv.firstChild);
+  }
+};
+
+
 
 /**
  * Show all blocks for all categories in the flyout
@@ -196,6 +223,7 @@ Blockly.Toolbox.prototype.showAll_ = function() {
   var allContents = [];
   for (var i = 0; i < this.categoryMenu_.categories_.length; i++) {
     var category = this.categoryMenu_.categories_[i];
+    // console.log("category: ", category);
 
     // create a label node to go at the top of the category
     var labelString = '<xml><label text="' + category.name_ + '"' +
@@ -211,6 +239,8 @@ Blockly.Toolbox.prototype.showAll_ = function() {
     allContents = allContents.concat(category.getContents());
   }
   this.flyout_.show(allContents);
+
+  // console.log("allContents: ", allContents);
 };
 
 /**
@@ -442,20 +472,24 @@ Blockly.Toolbox.prototype.setSelectedItem = function(item, opt_shouldScroll) {
   if (typeof opt_shouldScroll === 'undefined') {
     opt_shouldScroll = true;
   }
+
   if (this.selectedItem_) {
-    // They selected a different category but one was already open.  Close it.
+    // 이전 선택된 카테고리를 선택 해제
     this.selectedItem_.setSelected(false);
   }
   this.selectedItem_ = item;
-  if (this.selectedItem_ != null) {
+
+  if (this.selectedItem_) {
+    // 새 카테고리를 선택 상태로 설정
     this.selectedItem_.setSelected(true);
-    // Scroll flyout to the top of the selected category
-    var categoryId = item.id_;
+
+    // 플라이아웃에 해당 카테고리의 블록 표시
     if (opt_shouldScroll) {
-      this.scrollToCategoryById(categoryId);
+      this.scrollToCategoryById(item.id_);
     }
   }
 };
+
 
 /**
  * Select and scroll to a category by name.
@@ -557,14 +591,16 @@ Blockly.Toolbox.prototype.selectCategoryById = function(id) {
  * @return {function} A function that can be passed to bindEvent.
  */
 Blockly.Toolbox.prototype.setSelectedItemFactory = function(item) {
-  var selectedItem = item;
-  return function() {
+  return () => {
+    // console.log(`Category clicked: ${item.name_}`); // 디버깅 로그
     if (!this.workspace_.isDragging()) {
-      this.setSelectedItem(selectedItem);
+      this.setSelectedItem(item);
       Blockly.Touch.clearTouchIdentifier();
     }
   };
 };
+
+
 
 // Category menu
 /**
@@ -727,9 +763,184 @@ Blockly.Toolbox.Category.prototype.createDom = function() {
   this.item_.appendChild(this.bubble_);
   this.item_.appendChild(this.label_);
   this.parentHtml_.appendChild(this.item_);
+
+  // 클릭 이벤트 추가 (카테고리 선택)
   Blockly.bindEvent_(
-      this.item_, 'mouseup', toolbox, toolbox.setSelectedItemFactory(this));
+      this.item_, 'click', toolbox, toolbox.setSelectedItemFactory(this));
+
+  // 우클릭 이벤트 추가 (카테고리 삭제 메뉴 표시)
+  Blockly.bindEvent_(
+      this.item_, 'contextmenu', toolbox, this.showContextMenu_.bind(this));
 };
+
+
+
+
+// 컨텍스트 메뉴 표시 함수 추가
+Blockly.Toolbox.Category.prototype.showContextMenu_ = function(e) {
+  // 기본 제공 카테고리의 ID 목록
+  const DEFAULT_CATEGORY_IDS = [
+    'motion',
+    'looks',
+    'sound',
+    'events',
+    'control',
+    'sensing',
+    'operators',
+    'variables',
+    'myBlocks'
+  ];
+
+  e.preventDefault(); // 기본 우클릭 메뉴 비활성화
+
+  // 기본 카테고리인지 확인
+  if (DEFAULT_CATEGORY_IDS.includes(this.id_)) {
+    // console.log(`기본 카테고리(${this.id_})는 삭제할 수 없습니다.`);
+    return; // 기본 카테고리는 컨텍스트 메뉴를 표시하지 않음
+  }
+
+  // 기존 메뉴 제거
+  const existingMenu = document.getElementById('categoryContextMenu');
+  if (existingMenu) {
+    existingMenu.remove();
+  }
+
+  // 컨텍스트 메뉴 생성
+  const menu = document.createElement('div');
+  menu.id = 'categoryContextMenu';
+  menu.className = 'blocklyContextMenu';
+  menu.style.left = e.pageX + 'px';
+  menu.style.top = e.pageY + 'px';
+
+  // "카테고리 삭제하기" 메뉴 항목 추가
+  const deleteOption = document.createElement('div');
+  deleteOption.className = 'blocklyMenuItem';
+  deleteOption.textContent = '카테고리 삭제하기';
+  deleteOption.addEventListener('click', () => {
+    this.deleteCategory_();
+    menu.remove(); // 메뉴 닫기
+  });
+  menu.appendChild(deleteOption);
+
+  document.body.appendChild(menu);
+
+  // 메뉴 외부를 클릭하면 메뉴 제거
+  document.addEventListener('click', function removeMenu(event) {
+    if (!menu.contains(event.target)) {
+      menu.remove();
+      document.removeEventListener('click', removeMenu);
+    }
+  });
+};
+
+
+
+
+
+
+
+
+
+Blockly.Toolbox.Category.prototype.deleteCategory_ = function () {
+  const toolbox = this.parent_.parent_;
+  const flyout = toolbox.flyout_;
+  const categoryId = this.id_;
+
+  // 현재 선택된 카테고리인지 확인
+  const isSelectedCategory = toolbox.getSelectedCategoryId() === categoryId;
+
+  if (window.vm && window.vm.runtime) {
+    const runtime = window.vm.runtime;
+    runtime._blockInfo = runtime._blockInfo.filter(
+        (categoryInfo) => categoryInfo.id !== categoryId
+    );
+  }
+
+  // 도구 상자에서 해당 카테고리를 제거
+  const categories = toolbox.categoryMenu_.categories_;
+  let categoryIndex = -1;
+
+  for (let i = 0; i < categories.length; i++) {
+    if (categories[i].id_ === categoryId) {
+      categoryIndex = i;
+      categories.splice(i, 1); // 배열에서 제거
+      break;
+    }
+  }
+
+  // XML 데이터에서 해당 카테고리 제거
+  const languageTree = toolbox.workspace_.options.languageTree;
+  if (languageTree) {
+    for (let i = languageTree.childNodes.length - 1; i >= 0; i--) {
+      const child = languageTree.childNodes[i];
+      if (child.tagName && child.getAttribute('id') === categoryId) {
+        languageTree.removeChild(child);
+        break;
+      }
+    }
+  }
+
+  // 연관된 확장 상태 초기화
+  if (window.vm && window.vm.extensionManager) {
+    const extensionManager = window.vm.extensionManager;
+    const extensionId = categoryId;
+    if (extensionManager.isExtensionLoaded(extensionId)) {
+      if (extensionManager._loadedExtensions) {
+        extensionManager._loadedExtensions.delete(extensionId);
+      }
+      if (extensionManager.extensionURLs) {
+        extensionManager.extensionURLs.delete(extensionId);
+      }
+      const runtime = window.vm.runtime;
+      if (runtime && runtime.extensions && runtime.extensions[extensionId]) {
+        delete runtime.extensions[extensionId];
+      }
+    }
+  }
+
+  // DOM에서 해당 카테고리 제거
+  this.dispose();
+
+  // 이전 카테고리를 자동으로 선택
+  if (isSelectedCategory) {
+    let newSelectedCategory = null;
+    if (categoryIndex > 0) {
+      newSelectedCategory = categories[categoryIndex - 1];
+    } else if (categories.length > 0) {
+      newSelectedCategory = categories[0];
+    }
+
+    if (newSelectedCategory) {
+      toolbox.setSelectedItem(newSelectedCategory, true);
+    } else {
+      toolbox.setSelectedItem(null);
+    }
+  }
+
+  // XML 및 Redux 상태 갱신
+  const updatedToolboxXML = Blockly.Xml.domToText(languageTree); // languageTree 기반 XML 생성
+  toolbox.workspace_.options.languageTree = languageTree; // languageTree 업데이트
+
+  // Redux 상태 업데이트 및 Toolbox 갱신
+  const updateToolboxState = toolbox.workspace_.options.updateToolboxState;
+  if (typeof updateToolboxState === 'function') {
+    updateToolboxState(updatedToolboxXML);
+  } else {
+    console.error("updateToolboxState is not a function");
+  }
+
+  // 플라이아웃 초기화 및 도구 상자 갱신
+  if (flyout) {
+    flyout.hide();
+  }
+  toolbox.workspace_.updateToolbox(languageTree); // 실제 워크스페이스 갱신
+};
+
+
+
+
+
+
 
 /**
  * Set the selected state of this category.
@@ -771,7 +982,15 @@ Blockly.Toolbox.Category.prototype.parseContents_ = function(domTree) {
  *     name of a custom category.
  */
 Blockly.Toolbox.Category.prototype.getContents = function() {
-  return this.custom_ ? this.custom_ : this.contents_;
+  if (this.custom_) {
+    return this.custom_;
+  }
+
+  // 블록에 categoryId 추가
+  return this.contents_.map(block => {
+    block.categoryId = this.id_;
+    return block;
+  });
 };
 
 /**
