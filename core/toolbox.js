@@ -791,8 +791,6 @@ Blockly.Toolbox.Category.prototype.showContextMenu_ = function(e) {
     'myBlocks'
   ];
 
-  e.preventDefault(); // 기본 우클릭 메뉴 비활성화
-
   // 기본 카테고리인지 확인
   if (DEFAULT_CATEGORY_IDS.includes(this.id_)) {
     // console.log(`기본 카테고리(${this.id_})는 삭제할 수 없습니다.`);
